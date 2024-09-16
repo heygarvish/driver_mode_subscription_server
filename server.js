@@ -13,30 +13,86 @@ app.use(express.json());
 const stripe = require("stripe")(STRIPE_PRIVATE_KEY)
 
 app.post("/create-checkout-session", async (req, res) => {
-    const { customer_email } = req.body;
+    const { customer_email, allow_trial, coupon_id } = req.body;
 
     try {
       const session = await stripe.checkout.sessions.create({
         success_url: 'https://example.com/success',
         cancel_url: 'https://example.com/cancel',
         customer_email: customer_email,
+        discounts: coupon_id ? [
+            {
+                coupon: coupon_id,
+            },
+        ] : [],
         line_items: [
           {
             price: STRIPE_PRICE_ID,
             quantity: 1,
           },
         ],
-        subscription_data: {
+        subscription_data: allow_trial ? {
           trial_period_days: 7,
-        },
+        } : {},
         mode: 'subscription',
       });
     
       res.json({ url: session.url, session_id: session.id });
     } catch (e) {
-      res.status(500).json({ error: e.message })
+      res.status(500).json({ message: e.message })
     }
 })
+
+app.post("/create-coupon", async (req, res) => {
+    const { percent_off } = req.body;
+
+    try {
+        const coupon = await stripe.coupons.create({
+            percent_off: percent_off,
+            max_redemptions: 1,
+          });
+
+        res.send(coupon);
+    } catch (error) {
+        console.error("an error occurred while retrieving the coupon:", error);
+
+        return res.status(500).json({
+            message: error
+        });
+    }
+});
+
+app.post("/get-coupon", async (req, res) => {
+    const { coupon_id } = req.body;
+
+    try {
+        const coupon = await stripe.coupons.retrieve(
+            coupon_id
+          );
+
+        res.send(coupon);
+    } catch (error) {
+        console.error("an error occurred while retrieving the coupon:", error);
+
+        return res.status(500).json({
+            message: error
+        });
+    }
+})
+
+app.get("/get-all-coupons", async (req, res) => {
+    try {
+        const coupons = await stripe.coupons.list();
+
+        res.send(coupons);
+    } catch (error) {
+        console.error("an error occurred while retrieving the coupons:", error);
+
+        return res.status(500).json({
+            message: error
+        });
+    }
+});
 
 app.get("/get-stripe-session", async (req, res) => {
     const { stripe_session_id } = req.query;
@@ -72,6 +128,24 @@ app.get("/get-stripe-session", async (req, res) => {
         });
     }
   })
+
+app.post("/get-subscription", async (req, res) => {
+    const { subscription_id } = req.body;
+
+    try {
+        const subscription = await stripe.subscriptions.retrieve(
+            subscription_id
+          );
+
+        res.send(subscription);
+    } catch (error) {
+        console.error("an error occurred while retrieving the subscription:", error);
+
+        return res.status(500).json({
+            message: error
+        });
+    }
+});
 
 app.delete("/cancel-subscription", async (req, res) => {
     const { subscription_id } = req.body;
