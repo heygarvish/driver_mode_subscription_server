@@ -17,8 +17,8 @@ app.post("/create-checkout-session", async (req, res) => {
 
     try {
       const session = await stripe.checkout.sessions.create({
-        success_url: 'example.com/success',
-        cancel_url: 'example.com/cancel',
+        success_url: 'https://example.com/success',
+        cancel_url: 'https://example.com/cancel',
         customer_email: customer_email,
         line_items: [
           {
@@ -26,6 +26,9 @@ app.post("/create-checkout-session", async (req, res) => {
             quantity: 1,
           },
         ],
+        metadata: {
+          driver_id: driver_id
+        },
         subscription_data: {
           trial_period_days: 7,
         },
