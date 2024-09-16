@@ -26,9 +26,6 @@ app.post("/create-checkout-session", async (req, res) => {
             quantity: 1,
           },
         ],
-        metadata: {
-          driver_id: driver_id
-        },
         subscription_data: {
           trial_period_days: 7,
         },
