@@ -74,8 +74,6 @@ app.post("/create-coupon", async (req, res) => {
 
         res.send({
             coupon_id: coupon.id,
-            valid: coupon.valid,
-            percent_off: coupon.percent_off
         });
     } catch (error) {
         console.error("an error occurred while retrieving the coupon:", error);
@@ -86,25 +84,25 @@ app.post("/create-coupon", async (req, res) => {
     }
 });
 
-app.post("/get-coupon", async (req, res) => {
-    const { coupon_id } = req.body;
+// app.post("/get-coupon", async (req, res) => {
+//     const { coupon_id } = req.body;
 
-    try {
-        const coupon = await stripe.coupons.retrieve(
-            coupon_id
-          );
+//     try {
+//         const coupon = await stripe.coupons.retrieve(
+//             coupon_id
+//           );
 
-        res.send({
-            valid: coupon.valid
-        });
-    } catch (error) {
-        console.error("an error occurred while retrieving the coupon:", error);
+//         res.send({
+//             valid: coupon.valid
+//         });
+//     } catch (error) {
+//         console.error("an error occurred while retrieving the coupon:", error);
 
-        return res.status(500).json({
-            message: error
-        });
-    }
-})
+//         return res.status(500).json({
+//             message: error
+//         });
+//     }
+// })
 
 // app.get("/get-all-coupons", async (req, res) => {
 //     try {
