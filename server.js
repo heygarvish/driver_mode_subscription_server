@@ -33,13 +33,13 @@ const stripe = require("stripe")(STRIPE_PRIVATE_KEY)
 // })
 
 app.post("/create-checkout-session", async (req, res) => {
-    const { allow_trial, coupon_id } = req.body;
+    const { customer_email, allow_trial, coupon_id } = req.body;
 
     try {
       const session = await stripe.checkout.sessions.create({
         success_url: 'https://example.com/success',
         cancel_url: 'https://example.com/cancel',
-        // customer: customer_id,
+        customer_email: customer_email,
         discounts: coupon_id ? [
             {
                 coupon: coupon_id,
