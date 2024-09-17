@@ -12,14 +12,34 @@ app.use(express.json());
 
 const stripe = require("stripe")(STRIPE_PRIVATE_KEY)
 
+app.post("/create-customer", async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const customer = await stripe.customers.create({
+            email: email,
+          });
+
+        res.send({
+            customer_id: customer.id
+        });
+    } catch (error) {
+        console.error("an error occurred while creating the customer:", error);
+
+        return res.status(500).json({
+            message: error
+        });
+    }
+})
+
 app.post("/create-checkout-session", async (req, res) => {
-    const { customer_email, allow_trial, coupon_id } = req.body;
+    const { customer_id, allow_trial, coupon_id } = req.body;
 
     try {
       const session = await stripe.checkout.sessions.create({
         success_url: 'https://example.com/success',
         cancel_url: 'https://example.com/cancel',
-        customer_email: customer_email,
+        customer: customer_id,
         discounts: coupon_id ? [
             {
                 coupon: coupon_id,
@@ -37,7 +57,7 @@ app.post("/create-checkout-session", async (req, res) => {
         mode: 'subscription',
       });
     
-      res.json({ url: session.url, session_id: session.id });
+      res.json(session);
     } catch (e) {
       res.status(500).json({ message: e.message })
     }
