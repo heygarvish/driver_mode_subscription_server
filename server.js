@@ -72,7 +72,11 @@ app.post("/create-coupon", async (req, res) => {
             max_redemptions: 1,
           });
 
-        res.send(coupon);
+        res.send({
+            coupon_id: coupon.id,
+            valid: coupon.valid,
+            percent_off: coupon.percent_off
+        });
     } catch (error) {
         console.error("an error occurred while retrieving the coupon:", error);
 
@@ -90,7 +94,9 @@ app.post("/get-coupon", async (req, res) => {
             coupon_id
           );
 
-        res.send(coupon);
+        res.send({
+            valid: coupon.valid
+        });
     } catch (error) {
         console.error("an error occurred while retrieving the coupon:", error);
 
@@ -100,19 +106,37 @@ app.post("/get-coupon", async (req, res) => {
     }
 })
 
-app.get("/get-all-coupons", async (req, res) => {
-    try {
-        const coupons = await stripe.coupons.list();
+// app.get("/get-all-coupons", async (req, res) => {
+//     try {
+//         const coupons = await stripe.coupons.list();
 
-        res.send(coupons);
+//         res.send(coupons);
+//     } catch (error) {
+//         console.error("an error occurred while retrieving the coupons:", error);
+
+//         return res.status(500).json({
+//             message: error
+//         });
+//     }
+// });
+
+app.delete("/delete-coupon", async (req, res) => {
+    const { coupon_id } = req.body;
+
+    try {
+        await stripe.coupons.del(
+            coupon_id
+          );
+
+        res.status(200).send();
     } catch (error) {
-        console.error("an error occurred while retrieving the coupons:", error);
+        console.error("an error occurred while deleting the coupon:", error);
 
         return res.status(500).json({
             message: error
         });
     }
-});
+})
 
 app.get("/get-stripe-session", async (req, res) => {
     const { stripe_session_id } = req.query;
