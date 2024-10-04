@@ -1,5 +1,5 @@
 require("dotenv").config()
-const { STRIPE_PRIVATE_KEY, STRIPE_PRICE_ID } = process.env;
+const { STRIPE_PRIVATE_KEY, STRIPE_PRODUCT_ID } = process.env;
 
 const express = require('express');
 const cors = require('cors');
@@ -33,12 +33,12 @@ const stripe = require("stripe")(STRIPE_PRIVATE_KEY)
 // })
 
 app.post("/create-checkout-session", async (req, res) => {
-    const { customer_email, allow_trial, coupon_id } = req.body;
+    const { customer_email, trial_period_in_days, coupon_id, stripe_price_id } = req.body;
 
     try {
       const session = await stripe.checkout.sessions.create({
-        success_url: 'https://example.com/success',
-        cancel_url: 'https://example.com/cancel',
+        success_url: 'https://driver-mode.vercel.app/success',
+        cancel_url: 'https://driver-mode.vercel.app/cancel',
         customer_email: customer_email,
         discounts: coupon_id ? [
             {
@@ -47,12 +47,12 @@ app.post("/create-checkout-session", async (req, res) => {
         ] : [],
         line_items: [
           {
-            price: STRIPE_PRICE_ID,
+            price: stripe_price_id,
             quantity: 1,
           },
         ],
-        subscription_data: allow_trial ? {
-          trial_period_days: 7,
+        subscription_data: trial_period_in_days > 0 ? {
+          trial_period_days: trial_period_in_days,
         } : {},
         mode: 'subscription',
       });
@@ -62,6 +62,87 @@ app.post("/create-checkout-session", async (req, res) => {
       res.status(500).json({ message: e.message })
     }
 })
+
+// app.post("/create-new-price", async (req, res) => {
+//     const { amount, product_id } = req.body;
+
+//     try {
+//         const price = await stripe.prices.create({
+//             unit_amount: amount * 100,
+//             currency: "usd",
+            // recurring: {
+            //     interval: 'year',
+            // },
+//             product: product_id,
+//           });
+
+//         res.send({
+//             price_id: price.id,
+//             lookup_key: price.lookup_key
+//         });
+//     } catch (error) {
+//         console.error("an error occurred while creating the price:", error);
+
+//         return res.status(500).json({
+//             message: error
+//         });
+//     }
+// })
+
+app.post('/migrate-price', async (req, res) => {
+    const { newUnitAmount } = req.body;
+
+    try {
+        const previousPrices = await stripe.prices.list({
+            product: STRIPE_PRODUCT_ID,
+            active: true,
+            limit: 2, 
+        });
+
+        if (previousPrices.data.length > 1) {
+            const oldPriceId = previousPrices.data[0].id;
+            await stripe.prices.update(oldPriceId, {
+                active: false,
+            });
+        }
+
+        const newPrice = await stripe.prices.create({
+            unit_amount: newUnitAmount * 100,
+            currency: "usd",
+            recurring: {
+                interval: 'year',
+            },
+            product: STRIPE_PRODUCT_ID,
+        });
+
+        const subscriptions = await stripe.subscriptions.list({
+            status: 'active',
+            limit: 10000, 
+        });
+
+        for (const subscription of subscriptions.data) {
+            const subscriptionItems = subscription.items.data;
+            for (const item of subscriptionItems) {
+                if (item.price.product === STRIPE_PRODUCT_ID) {
+                    await stripe.subscriptions.cancel(subscription.id);
+                    break; 
+                }
+            }
+        }
+
+        res.status(200).json({
+            price_id: newPrice.id,
+            unit_amount: newPrice.unit_amount / 100,
+        });
+    } catch (error) {
+        console.error('Error migrating price:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error processing request',
+            error: error.message,
+        });
+    }
+});
 
 app.post("/create-coupon", async (req, res) => {
     const { percent_off } = req.body;
