@@ -145,12 +145,12 @@ app.post('/migrate-price', async (req, res) => {
 });
 
 app.post("/create-coupon", async (req, res) => {
-    const { percent_off } = req.body;
+    const { percent_off, max_usage } = req.body;
 
     try {
         const coupon = await stripe.coupons.create({
             percent_off: percent_off,
-            max_redemptions: 1,
+            max_redemptions: max_usage,
           });
 
         res.send({
